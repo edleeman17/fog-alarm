@@ -31,16 +31,21 @@ class MainActivity : AppCompatActivity() {
         getSharedPreferences("fog_alarm", MODE_PRIVATE)
     }
 
-    private val locationPermLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
-        if (results[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
-            requestNotificationPerm()
-        } else {
+    // Step 1: fine location only
+    private val fineLocationLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) requestBackgroundLocation()
+        else {
             toggleSwitch.isChecked = false
             Toast.makeText(this, "Location permission required", Toast.LENGTH_SHORT).show()
         }
     }
+
+    // Step 2: background location — must be separate request on Android 11+
+    private val backgroundLocationLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { requestNotificationPerm() } // proceed regardless — background loc is best-effort
 
     private val notifPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -114,12 +119,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestPermissionsAndEnable() {
-        val needed = mutableListOf<String>()
         if (!hasPerm(Manifest.permission.ACCESS_FINE_LOCATION))
-            needed.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            fineLocationLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        else requestBackgroundLocation()
+    }
+
+    private fun requestBackgroundLocation() {
         if (!hasPerm(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
-            needed.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        if (needed.isNotEmpty()) locationPermLauncher.launch(needed.toTypedArray())
+            backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         else requestNotificationPerm()
     }
 
