@@ -88,6 +88,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_view_log).setOnClickListener {
             startActivity(Intent(this, LogActivity::class.java))
         }
+
+        Thread { UpdateChecker(this).check() }.start()
     }
 
     override fun onResume() {
