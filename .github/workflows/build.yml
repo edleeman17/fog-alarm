@@ -23,20 +23,34 @@ jobs:
         with:
           gradle-version: '8.6'
 
-      - name: Build debug APK
-        run: gradle assembleDebug
+      - name: Run unit tests
+        run: gradle test
 
-      - name: Delete existing latest release
+      - name: Build debug APK
+        run: gradle assembleDebug -PversionCode=${{ github.run_number }}
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk fog-alarm.apk
+
+      - name: Delete old latest release
         run: gh release delete latest --yes 2>/dev/null || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create release with APK
+      - name: Create versioned release
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk fog-alarm.apk
+          gh release create "v${{ github.run_number }}" \
+            --title "Build ${{ github.run_number }}" \
+            --notes "Commit: ${{ github.sha }}" \
+            fog-alarm.apk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag as latest
+        run: |
           gh release create latest \
-            --title "Latest Build" \
-            --notes "Built from commit ${{ github.sha }}" \
+            --title "Latest (Build ${{ github.run_number }})" \
+            --notes "See v${{ github.run_number }} — built from ${{ github.sha }}" \
             fog-alarm.apk
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

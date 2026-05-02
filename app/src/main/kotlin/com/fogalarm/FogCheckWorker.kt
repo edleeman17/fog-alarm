@@ -11,26 +11,42 @@ class FogCheckWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, param
 
     override fun doWork(): Result {
         val prefs = applicationContext.getSharedPreferences("fog_alarm", Context.MODE_PRIVATE)
+        DebugLogger.log(applicationContext, "WORKER", "Check started")
+
         val location = LocationHelper(applicationContext).getLastKnownLocation()
-            ?: return Result.retry()
+        if (location == null) {
+            DebugLogger.log(applicationContext, "WORKER", "No location available — retrying")
+            return Result.retry()
+        }
+        DebugLogger.log(applicationContext, "WORKER", "Location: ${location.latitude}, ${location.longitude}")
 
         val fogEvent = try {
-            WeatherRepository().checkForFog(location.latitude, location.longitude)
+            WeatherRepository.create(applicationContext).checkForFog(location.latitude, location.longitude)
         } catch (e: Exception) {
+            DebugLogger.log(applicationContext, "WORKER", "API error: ${e.message}")
             return Result.retry()
         }
 
-        prefs.edit()
-            .putString("last_check", SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date()))
-            .apply()
+        val timestamp = SimpleDateFormat("HH:mm dd/MM", Locale.getDefault()).format(Date())
+        prefs.edit().putString("last_check", timestamp).apply()
 
         if (fogEvent != null) {
             val fogStartMs = parseFogTime(fogEvent.isoTime, fogEvent.hourIndex)
             val leadTime = prefs.getInt("lead_time_minutes", 60)
             AlarmScheduler(applicationContext).scheduleAlarm(fogStartMs, leadTime)
-            prefs.edit().putString("status", "Fog expected at ${fogEvent.isoTime.takeLast(5)}").apply()
+            val status = "Fog expected at ${fogEvent.isoTime.takeLast(5)}"
+            prefs.edit().putString("status", status).apply()
+            DebugLogger.log(applicationContext, "WORKER", "Fog detected: $status (code index ${fogEvent.hourIndex})")
         } else {
             prefs.edit().putString("status", "No fog in next 3 hours").apply()
+            DebugLogger.log(applicationContext, "WORKER", "No fog detected")
+        }
+
+        // Check for app update once per day
+        val lastUpdateCheck = prefs.getLong("last_update_check", 0L)
+        if (System.currentTimeMillis() - lastUpdateCheck > 24 * 3600_000L) {
+            UpdateChecker(applicationContext).check()
+            prefs.edit().putLong("last_update_check", System.currentTimeMillis()).apply()
         }
 
         return Result.success()
@@ -39,9 +55,9 @@ class FogCheckWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, param
     private fun parseFogTime(isoTime: String, hourIndex: Int): Long {
         return try {
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
-                .parse(isoTime)?.time
-                ?: fallbackFogTime(hourIndex)
+                .parse(isoTime)?.time ?: fallbackFogTime(hourIndex)
         } catch (e: Exception) {
+            DebugLogger.log(applicationContext, "WORKER", "Failed to parse fog time '$isoTime': ${e.message}")
             fallbackFogTime(hourIndex)
         }
     }
@@ -64,14 +80,14 @@ class FogCheckWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, param
                 .build()
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
-                request
+                WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request
             )
+            DebugLogger.log(context, "WORKER", "Scheduled every $intervalMinutes min")
         }
 
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            DebugLogger.log(context, "WORKER", "Cancelled")
         }
     }
 }

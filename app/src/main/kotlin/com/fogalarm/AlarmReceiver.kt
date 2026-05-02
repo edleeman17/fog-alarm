@@ -12,6 +12,7 @@ import androidx.core.content.getSystemService
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val fogStartMs = intent.getLongExtra("fog_start_ms", 0L)
+        DebugLogger.log(context, "ALARM_RX", "Received — fogStartMs=$fogStartMs")
 
         // Launch full-screen alarm activity — wakes screen, loops sound, shows on lock screen
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {

@@ -85,6 +85,10 @@ class MainActivity : AppCompatActivity() {
                 putExtra("fog_start_ms", System.currentTimeMillis() + 3_600_000L)
             })
         }
+
+        findViewById<Button>(R.id.btn_view_log).setOnClickListener {
+            startActivity(Intent(this, LogActivity::class.java))
+        }
     }
 
     override fun onResume() {
