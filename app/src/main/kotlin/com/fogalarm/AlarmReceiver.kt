@@ -6,47 +6,37 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.media.RingtoneManager
-import android.os.VibrationEffect
-import android.os.Vibrator
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val fogStartMs = intent.getLongExtra("fog_start_ms", 0L)
-        val fogTime = if (fogStartMs > 0) {
-            SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(fogStartMs))
-        } else "soon"
 
+        // Launch full-screen alarm activity — wakes screen, loops sound, shows on lock screen
+        val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("fog_start_ms", fogStartMs)
+        }
+
+        // Notification required on Android 10+ to start activity from background
         ensureNotificationChannel(context)
-
-        val openAppIntent = PendingIntent.getActivity(
-            context, 0,
-            Intent(context, MainActivity::class.java),
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            context, 0, alarmIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle("Fog Alert")
-            .setContentText("Fog expected around $fogTime — time to get up")
+            .setContentText("Tap to view")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setFullScreenIntent(openAppIntent, true)
-            .setAutoCancel(true)
-            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setOngoing(true)
             .build()
 
         context.getSystemService<NotificationManager>()!!.notify(NOTIFICATION_ID, notification)
-
-        @Suppress("DEPRECATION")
-        context.getSystemService<Vibrator>()?.vibrate(
-            VibrationEffect.createWaveform(longArrayOf(0, 1000, 500, 1000), -1)
-        )
+        context.startActivity(alarmIntent)
     }
 
     private fun ensureNotificationChannel(context: Context) {
@@ -54,7 +44,7 @@ class AlarmReceiver : BroadcastReceiver() {
             CHANNEL_ID, "Fog Alarms", NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Alerts when fog is expected"
-            enableVibration(true)
+            enableVibration(false) // AlarmActivity handles vibration
         }
         context.getSystemService<NotificationManager>()!!.createNotificationChannel(channel)
     }

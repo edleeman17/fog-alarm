@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         testAlarmButton.setOnClickListener {
-            sendBroadcast(Intent(this, AlarmReceiver::class.java).apply {
+            startActivity(Intent(this, AlarmActivity::class.java).apply {
                 putExtra("fog_start_ms", System.currentTimeMillis() + 3_600_000L)
             })
         }
