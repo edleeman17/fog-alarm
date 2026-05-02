@@ -33,9 +33,10 @@ jobs:
 
       - name: Create release with APK
         run: |
+          cp app/build/outputs/apk/debug/app-debug.apk fog-alarm.apk
           gh release create latest \
             --title "Latest Build" \
             --notes "Built from commit ${{ github.sha }}" \
-            app/build/outputs/apk/debug/app-debug.apk#fog-alarm.apk
+            fog-alarm.apk
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
