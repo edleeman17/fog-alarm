@@ -31,9 +31,14 @@ class FogCheckWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, param
         prefs.edit().putString("last_check", timestamp).apply()
 
         if (fogEvent != null) {
-            val fogStartMs = parseFogTime(fogEvent.isoTime, fogEvent.hourIndex)
-            val leadTime = prefs.getInt("lead_time_minutes", 60)
-            AlarmScheduler(applicationContext).scheduleAlarm(fogStartMs, leadTime)
+            val scheduler = AlarmScheduler(applicationContext)
+            if (prefs.getString("debug_server_url", null) != null) {
+                scheduler.scheduleDebugAlarm()
+            } else {
+                val fogStartMs = parseFogTime(fogEvent.isoTime, fogEvent.hourIndex)
+                val leadTime = prefs.getInt("lead_time_minutes", 60)
+                scheduler.scheduleAlarm(fogStartMs, leadTime)
+            }
             val status = "Fog expected at ${fogEvent.isoTime.takeLast(5)}"
             prefs.edit().putString("status", status).apply()
             DebugLogger.log(applicationContext, "WORKER", "Fog detected: $status (code index ${fogEvent.hourIndex})")

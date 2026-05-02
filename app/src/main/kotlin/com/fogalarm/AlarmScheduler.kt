@@ -31,6 +31,14 @@ class AlarmScheduler(private val context: Context) {
         DebugLogger.log(context, "ALARM", "Scheduled for $alarmTime (fog at $fogStartEpochMs, lead ${leadTimeMinutes}min)")
     }
 
+    fun scheduleDebugAlarm() {
+        val alarmTime = System.currentTimeMillis() + 5_000L
+        val pendingIntent = buildPendingIntent(alarmTime)
+        alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(alarmTime, pendingIntent), pendingIntent)
+        prefs.edit().putLong("scheduled_alarm_ms", alarmTime).apply()
+        DebugLogger.log(context, "ALARM", "Debug alarm scheduled in 5s")
+    }
+
     fun cancelAlarm() {
         alarmManager.cancel(buildPendingIntent(0L))
         prefs.edit().remove("scheduled_alarm_ms").apply()
