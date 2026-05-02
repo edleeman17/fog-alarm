@@ -81,9 +81,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         testAlarmButton.setOnClickListener {
-            startActivity(Intent(this, AlarmActivity::class.java).apply {
-                putExtra("fog_start_ms", System.currentTimeMillis() + 3_600_000L)
-            })
+            AlarmScheduler(this).scheduleTestAlarm()
+            Toast.makeText(this, "Alarm in 15s — you can lock the phone now", Toast.LENGTH_LONG).show()
         }
 
         findViewById<Button>(R.id.btn_view_log).setOnClickListener {
