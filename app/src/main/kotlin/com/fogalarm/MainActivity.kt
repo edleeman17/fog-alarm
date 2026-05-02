@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity() {
         intervalSpinner.onItemSelectedListener = spinnerListener { pos ->
             val mins = INTERVAL_OPTIONS[pos]
             prefs.edit().putInt("interval_minutes", mins).apply()
-            if (prefs.getBoolean("enabled", false)) FogCheckWorker.schedule(this, mins.toLong())
+            if (prefs.getBoolean("enabled", false)) CheckScheduler(this).schedule(mins)
         }
 
         testAlarmButton.setOnClickListener {
@@ -161,12 +161,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun enableMonitoring() {
-        FogCheckWorker.schedule(this, prefs.getInt("interval_minutes", 60).toLong())
+        CheckScheduler(this).scheduleImmediate()
         updateStatus()
     }
 
     private fun disableMonitoring() {
-        FogCheckWorker.cancel(this)
+        CheckScheduler(this).cancel()
         AlarmScheduler(this).cancelAlarm()
         prefs.edit().remove("status").remove("last_check").apply()
         updateStatus()

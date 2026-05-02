@@ -1,11 +1,11 @@
 package com.fogalarm
 
 import android.content.Context
-import androidx.work.*
+import androidx.work.Worker
+import androidx.work.WorkerParameters
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 class FogCheckWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
 
@@ -70,29 +70,4 @@ class FogCheckWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, param
     private fun fallbackFogTime(hourIndex: Int) =
         System.currentTimeMillis() + (hourIndex + 1) * 3_600_000L
 
-    companion object {
-        private const val WORK_NAME = "fog_check"
-
-        fun schedule(context: Context, intervalMinutes: Long = 60) {
-            val request = PeriodicWorkRequestBuilder<FogCheckWorker>(
-                intervalMinutes, TimeUnit.MINUTES
-            )
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
-                .build()
-
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request
-            )
-            DebugLogger.log(context, "WORKER", "Scheduled every $intervalMinutes min")
-        }
-
-        fun cancel(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
-            DebugLogger.log(context, "WORKER", "Cancelled")
-        }
-    }
 }

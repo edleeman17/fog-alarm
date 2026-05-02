@@ -48,6 +48,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".CheckReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>

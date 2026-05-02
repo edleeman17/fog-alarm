@@ -41,10 +41,7 @@ class LogActivity : AppCompatActivity() {
         }
 
         triggerButton.setOnClickListener {
-            // Run a one-off check immediately
-            androidx.work.OneTimeWorkRequestBuilder<FogCheckWorker>().build().also {
-                androidx.work.WorkManager.getInstance(this).enqueue(it)
-            }
+            CheckScheduler(this).scheduleImmediate()
             Toast.makeText(this, "Check triggered — log updates in ~5s", Toast.LENGTH_SHORT).show()
         }
 

@@ -9,8 +9,8 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         val prefs = context.getSharedPreferences("fog_alarm", Context.MODE_PRIVATE)
         if (prefs.getBoolean("enabled", false)) {
-            val interval = prefs.getInt("interval_minutes", 60).toLong()
-            FogCheckWorker.schedule(context, interval)
+            val interval = prefs.getInt("interval_minutes", 60)
+            CheckScheduler(context).schedule(interval)
         }
     }
 }
