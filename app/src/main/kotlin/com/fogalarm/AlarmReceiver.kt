@@ -37,7 +37,7 @@ class AlarmReceiver : BroadcastReceiver() {
             .build()
 
         context.getSystemService<NotificationManager>()!!.notify(NOTIFICATION_ID, notification)
-        context.startActivity(alarmIntent)
+        try { context.startActivity(alarmIntent) } catch (_: Exception) {}
     }
 
     private fun ensureNotificationChannel(context: Context) {

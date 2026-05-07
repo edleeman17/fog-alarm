@@ -2,6 +2,7 @@ package com.fogalarm
 
 import android.Manifest
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -51,6 +52,10 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { requestBatteryExemption() }
 
+    private val fullScreenIntentSettingsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { enableMonitoring() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -81,6 +86,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         testAlarmButton.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                !getSystemService<NotificationManager>()!!.canUseFullScreenIntent()
+            ) {
+                Toast.makeText(this, "Full-screen alarm permission needed — opening settings", Toast.LENGTH_LONG).show()
+                startActivity(
+                    Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                )
+                return@setOnClickListener
+            }
             AlarmScheduler(this).scheduleTestAlarm()
             Toast.makeText(this, "Alarm in 15s — you can lock the phone now", Toast.LENGTH_LONG).show()
         }
@@ -158,7 +174,21 @@ class MainActivity : AppCompatActivity() {
                 data = Uri.parse("package:$packageName")
             })
         }
-        enableMonitoring()
+        requestFullScreenIntentPerm()
+    }
+
+    private fun requestFullScreenIntentPerm() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            !getSystemService<NotificationManager>()!!.canUseFullScreenIntent()
+        ) {
+            fullScreenIntentSettingsLauncher.launch(
+                Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+            )
+        } else {
+            enableMonitoring()
+        }
     }
 
     private fun enableMonitoring() {
